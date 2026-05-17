@@ -464,7 +464,10 @@
 </div>
 
 <footer>
-  17.5.2026 · מקורות: נתוני הצבעה — eurovisionworld.com, Times of Israel, Jerusalem Post · אוכלוסייה יהודית — DellaPergola/AJYB 2020, Jewish Virtual Library 2024 · ישראלים בחו"ל — JPR 2023, Times of Israel, OECD 2025 · אוכלוסיות מדינות — UN 2024
+  <div style="margin-bottom: 12px; color: var(--accent); font-size: 14px;">
+    צפיות בדף: <span id="visit-count" style="font-weight: 700; font-variant-numeric: tabular-nums;">…</span>
+  </div>
+  17.5.2026 · מקורות: נתוני הצבעה — eurovisionworld.com, Times of Israel, Jerusalem Post · אוכלוסייה יהודית — DellaPergola/AJYB 2020, Jewish Virtual Library 2024 · ישראלים בחו"ל — JPR 2023, Times of Israel, OECD 2025 · איראנים בחו"ל — UCLA Iranian Diaspora Dashboard 2024-2026 · אוכלוסיות מדינות — UN 2024
 </footer>
 
 </div>
@@ -627,6 +630,18 @@ new Chart(document.getElementById('scatterIran'), {
     }
   }
 });
+
+// Visit counter
+fetch('https://api.counterapi.dev/v1/ohadzad-eurovision-diaspora/pageviews/up')
+  .then(r => r.json())
+  .then(d => {
+    const el = document.getElementById('visit-count');
+    if (el && typeof d.count === 'number') el.textContent = d.count.toLocaleString('he-IL');
+  })
+  .catch(() => {
+    const el = document.getElementById('visit-count');
+    if (el) el.textContent = '—';
+  });
 
 // Iranian quartile bar
 new Chart(document.getElementById('quartileIran'), {
