@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>אירוויזיון 2026 — הצבעות הקהל לישראל מול האוכלוסייה היהודית</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1228;
+    --panel: #1b1f3a;
+    --panel-2: #232852;
+    --accent: #ffd24c;
+    --accent-2: #4dd2ff;
+    --good: #4ade80;
+    --bad: #f87171;
+    --text: #f5f7fb;
+    --muted: #a3a8c3;
+    --border: rgba(255,255,255,0.08);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: linear-gradient(180deg, #0a0d22 0%, #14182f 100%);
+    color: var(--text);
+    font-family: "Segoe UI", "Heebo", "Arial Hebrew", Arial, sans-serif;
+    line-height: 1.6;
+    padding: 32px 16px;
+  }
+  .container { max-width: 1180px; margin: 0 auto; }
+  header { text-align: center; margin-bottom: 40px; }
+  header h1 {
+    font-size: 38px;
+    margin: 0 0 8px 0;
+    background: linear-gradient(90deg, #ffd24c, #ff7eb3);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  header .sub { color: var(--muted); font-size: 16px; }
+  .kpi-row {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+    margin-bottom: 32px;
+  }
+  .kpi {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    text-align: center;
+  }
+  .kpi .val { font-size: 42px; font-weight: 700; color: var(--accent); line-height: 1.05; }
+  .kpi .lbl { color: var(--muted); font-size: 14px; margin-top: 6px; }
+  .kpi.alt .val { color: var(--accent-2); }
+  .kpi.bad .val { color: var(--bad); }
+  .kpi.good .val { color: var(--good); }
+
+  section.card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px 28px;
+    margin-bottom: 24px;
+  }
+  section.card h2 {
+    margin: 0 0 4px 0;
+    font-size: 24px;
+    color: var(--accent);
+  }
+  section.card .lede {
+    color: var(--muted);
+    font-size: 15px;
+    margin-bottom: 18px;
+  }
+  .chart-wrap {
+    position: relative;
+    height: 480px;
+    width: 100%;
+  }
+  .chart-wrap.tall { height: 640px; }
+  .chart-wrap.short { height: 360px; }
+
+  .insight-box {
+    background: var(--panel-2);
+    border-right: 4px solid var(--accent);
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-top: 16px;
+    font-size: 15px;
+  }
+  .insight-box strong { color: var(--accent); }
+
+  .pill-grid {
+    display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px;
+    margin-top: 12px;
+  }
+  .pill {
+    background: linear-gradient(135deg, #2e7d32, #1b5e20);
+    border-radius: 12px;
+    padding: 12px;
+    text-align: center;
+  }
+  .pill .country { font-weight: 700; font-size: 16px; }
+  .pill .meta { font-size: 12px; color: rgba(255,255,255,0.75); margin-top: 4px; }
+
+  .anomaly-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;
+    margin-top: 8px;
+  }
+  .anomaly {
+    background: var(--panel-2);
+    border-radius: 12px;
+    padding: 14px 16px;
+    border-right: 4px solid;
+  }
+  .anomaly.over { border-color: var(--good); }
+  .anomaly.under { border-color: var(--bad); }
+  .anomaly .head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 6px;
+  }
+  .anomaly .name { font-weight: 700; font-size: 17px; }
+  .anomaly .pts { font-weight: 700; }
+  .anomaly.over .pts { color: var(--good); }
+  .anomaly.under .pts { color: var(--bad); }
+  .anomaly .desc { font-size: 13px; color: var(--muted); }
+
+  table.heat {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+    font-size: 14px;
+  }
+  table.heat th {
+    background: var(--panel-2);
+    padding: 10px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+  }
+  table.heat td {
+    padding: 8px 10px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+  table.heat td.country { text-align: right; font-weight: 600; }
+  table.heat tr:hover td { background: rgba(255,255,255,0.03); }
+
+  .vote-cell { font-weight: 700; border-radius: 6px; padding: 4px 10px; display: inline-block; min-width: 30px; }
+
+  .conclusion {
+    background: linear-gradient(135deg, #2d1b58, #1f1148);
+    border: 1px solid rgba(255,210,76,0.3);
+    border-radius: 16px;
+    padding: 28px 32px;
+    margin-top: 24px;
+  }
+  .conclusion h2 { color: var(--accent); margin-top: 0; }
+  .conclusion ol { padding-right: 20px; }
+  .conclusion li { margin-bottom: 10px; }
+
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 32px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  @media (max-width: 800px) {
+    .kpi-row { grid-template-columns: repeat(2, 1fr); }
+    .pill-grid { grid-template-columns: repeat(2, 1fr); }
+    .anomaly-grid { grid-template-columns: 1fr; }
+    header h1 { font-size: 26px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1>הקהל באירוויזיון אהב את ישראל — מי בעצם הצביע?</h1>
+  <div class="sub">צילוב הצבעות הקהל בגמר 16.5.2026 עם גודל הקהילה היהודית בכל מדינה</div>
+</header>
+
+<div class="kpi-row">
+  <div class="kpi">
+    <div class="val">220</div>
+    <div class="lbl">סה"כ נק' קהל לישראל</div>
+  </div>
+  <div class="kpi good">
+    <div class="val">6</div>
+    <div class="lbl">מדינות שנתנו 12 נק'</div>
+  </div>
+  <div class="kpi bad">
+    <div class="val">3</div>
+    <div class="lbl">מדינות שנתנו 0</div>
+  </div>
+  <div class="kpi alt">
+    <div class="val">0.01</div>
+    <div class="lbl">מתאם פירסון בין יהודים לנקודות</div>
+  </div>
+</div>
+
+<!-- THE BIG ANSWER -->
+<section class="card">
+  <h2>השורה התחתונה: גודל הקהילה היהודית כמעט לא הסביר את ההצבעה</h2>
+  <div class="lede">המתאם הסטטיסטי בין כמות היהודים במדינה לבין הנקודות שנתנה לישראל הוא 0.01 — מעשית אפס. גרפית, זה נראה כך:</div>
+  <div class="chart-wrap"><canvas id="scatter"></canvas></div>
+  <div class="insight-box">
+    <strong>איך לקרוא את הגרף:</strong> כל נקודה היא מדינה. הציר האופקי — גודל הקהילה היהודית (סקאלה לוגריתמית כדי להכניס גם את אלבניה עם 50 וגם את צרפת עם 438,500 לאותו גרף). הציר האנכי — נקודות הקהל לישראל. אם היה קשר, היינו רואים קו עולה מימין לשמאל. במקום זה אנחנו רואים ענן מפוזר. <strong>צרפת ואלבניה נתנו 12 נק' זהות — למרות שיש שם פי ~8,000 יותר יהודים.</strong>
+  </div>
+</section>
+
+<!-- WHY (math) -->
+<section class="card">
+  <h2>למה בעצם זה לא הפתעה?</h2>
+  <div class="lede">מתמטית, אפילו במדינות הגדולות יהודים הם פחות מאחוז אחד מהאוכלוסייה. אז גם אם <em>כל</em> יהודי במדינה היה מצביע פי שניים, זה לא היה מספיק להגיע ל-12 נק'.</div>
+  <div class="chart-wrap"><canvas id="ratio"></canvas></div>
+  <div class="insight-box">
+    אחוז היהודים מתוך אוכלוסיית המדינה. אפילו בצרפת — שם הקהילה היהודית הגדולה ביותר באירופה — מדובר ב-0.65% בלבד. הקול היהודי אף פעם לא יכול היה להניב 12 נק' לבד; ההצבעה תמיד נסמכת על האוכלוסייה הכללית.
+  </div>
+</section>
+
+<!-- 12 POINTERS -->
+<section class="card">
+  <h2>מי נתן 12? המשותף ביניהן</h2>
+  <div class="lede">שש מדינות נתנו את הציון המקסימלי. הקהילות היהודיות שלהן לא בהכרח גדולות:</div>
+  <div class="pill-grid">
+    <div class="pill"><div class="country">אזרבייג'ן 🇦🇿</div><div class="meta">12 נק' · ~7,200 יהודים</div></div>
+    <div class="pill"><div class="country">פינלנד 🇫🇮</div><div class="meta">12 נק' · ~1,300 יהודים</div></div>
+    <div class="pill"><div class="country">צרפת 🇫🇷</div><div class="meta">12 נק' · ~438,500 יהודים</div></div>
+    <div class="pill"><div class="country">גרמניה 🇩🇪</div><div class="meta">12 נק' · ~125,000 יהודים</div></div>
+    <div class="pill"><div class="country">פורטוגל 🇵🇹</div><div class="meta">12 נק' · ~3,300 יהודים</div></div>
+    <div class="pill"><div class="country">שוויץ 🇨🇭</div><div class="meta">12 נק' · ~18,500 יהודים</div></div>
+  </div>
+  <div class="insight-box">
+    <strong>מה משותף לשש?</strong> כמעט שום דבר במונחי גודל קהילה — בין 1,300 (פינלנד) ל-438,500 (צרפת). מה כן ייתכן שמסביר:
+    <br>• <strong>אזרבייג'ן</strong> — ברית אסטרטגית הדוקה עם ישראל, אינטרסים מול איראן.
+    <br>• <strong>צרפת + גרמניה</strong> — הקהילות היהודיות הגדולות מערבית, אבל גם פלח אוכלוסייה גדול עם יחס חיובי לישראל לאחר 7.10.
+    <br>• <strong>פינלנד, פורטוגל, שוויץ</strong> — קהילות יהודיות קטנות; הציון מגיע ככל הנראה מהאוכלוסייה הכללית. ההסבר כאן הוא אסתטיקה מוזיקלית של השיר, לא דמוגרפיה.
+  </div>
+</section>
+
+<!-- BIG COMMUNITY UNDERPERFORMERS -->
+<section class="card">
+  <h2>הקהילות הגדולות שלא תרגמו לקולות</h2>
+  <div class="lede">המדינות עם הכי הרבה יהודים מדורגות לפי מספר הנקודות שנתנו — מהגבוה לנמוך:</div>
+  <div class="chart-wrap tall"><canvas id="bigcomm"></canvas></div>
+  <div class="insight-box">
+    <strong>אוסטרליה</strong> (117,200 יהודים — הקהילה ה-8 בגודלה בעולם) נתנה <strong>0 נק'</strong>. זה ה-data point הכי מפתיע בכל הניתוח. <strong>בריטניה</strong> (312,000 יהודים) נתנה 10 — לא 12. רוב הקול היהודי בקהילות אלו "טבע" בקול הציבור הכללי, שבחר אחרת. הקול היהודי המקומי כנראה כן הצביע לישראל — אבל זה לא הספיק אפילו לדחוף את המדינה לציון בעשירייה הראשונה.
+  </div>
+</section>
+
+<!-- ANOMALIES -->
+<section class="card">
+  <h2>אנומליות: מי הצביע בלי שום קשר לגודל הקהילה</h2>
+  <div class="lede">המקרים הכי "חריגים" בכל כיוון — מדינות שהצבעתן לא תואמת את גודל הקהילה היהודית בהן:</div>
+
+  <h3 style="color:var(--good); margin-top: 18px;">⬆ אהבת ישראל גדולה מהציפיות (יחסית לקהילה)</h3>
+  <div class="anomaly-grid">
+    <div class="anomaly over">
+      <div class="head"><span class="name">אלבניה 🇦🇱</span><span class="pts">10 נק'</span></div>
+      <div class="desc">קהילה יהודית של ~50 איש בלבד. 10 נק' זה מה שיהודי ממוצע במדינה היה יכול לבקש להוריש לדורות. ההסבר: יחסי ישראל-אלבניה היסטוריים חמים והצבעה תרבותית/מוזיקלית.</div>
+    </div>
+    <div class="anomaly over">
+      <div class="head"><span class="name">פינלנד 🇫🇮</span><span class="pts">12 נק'</span></div>
+      <div class="desc">1,300 יהודים, 12 נק' — היחס הכי גבוה בין מדינות הציון המקסימלי. השיר הישראלי כנראה פגע בטעם הפיני.</div>
+    </div>
+    <div class="anomaly over">
+      <div class="head"><span class="name">גיאורגיה 🇬🇪</span><span class="pts">10 נק'</span></div>
+      <div class="desc">קהילה היסטורית של 1,500 כיום; פעם כמעט 100,000. ההצבעה משקפת ככל הנראה זיקה תרבותית עמוקה — והמון גיאורגים-ישראלים שאולי הצביעו מישראל.</div>
+    </div>
+    <div class="anomaly over">
+      <div class="head"><span class="name">פורטוגל 🇵🇹</span><span class="pts">12 נק'</span></div>
+      <div class="desc">3,300 יהודים, 12 נק' מלאים. בפורטוגל אין הצבעה ברורה "פרו-ישראל היסטורית"; זו ככל הנראה הצבעה מוזיקלית טהורה.</div>
+    </div>
+  </div>
+
+  <h3 style="color:var(--bad); margin-top: 22px;">⬇ פחות ממה שהקהילה היהודית הייתה מצפה</h3>
+  <div class="anomaly-grid">
+    <div class="anomaly under">
+      <div class="head"><span class="name">אוסטרליה 🇦🇺</span><span class="pts">0 נק'</span></div>
+      <div class="desc">117,200 יהודים — מהקהילות הגדולות בעולם — ו-0 נק'. ההסבר: הקהל האוסטרלי הכללי בחר אחרת, והקול היהודי המקומי הוא <em>0.45%</em> מהאוכלוסייה. סטטיסטית פשוט בלתי-אפשרי "להציל" את המקום הזה.</div>
+    </div>
+    <div class="anomaly under">
+      <div class="head"><span class="name">קרואטיה / ליטא 🇭🇷🇱🇹</span><span class="pts">0 נק'</span></div>
+      <div class="desc">קהילות של ~1,700 ו-~2,400 בהתאמה. הקול היהודי שם מיקרוסקופי; הציבור הכללי לא בחר בשיר.</div>
+    </div>
+    <div class="anomaly under">
+      <div class="head"><span class="name">בריטניה 🇬🇧</span><span class="pts">10 נק'</span></div>
+      <div class="desc">312,000 יהודים — הקהילה הגדולה השלישית מחוץ לישראל באירופה — ו"רק" 10, לא 12. סביר שהיהודים אכן הצביעו לישראל, אבל הם 0.46% מהאוכלוסייה.</div>
+    </div>
+    <div class="anomaly under">
+      <div class="head"><span class="name">אוקראינה 🇺🇦</span><span class="pts">5 נק'</span></div>
+      <div class="desc">45,000 יהודים (טרום-מלחמה). 5 נק' זה ציון בינוני; ייתכן שמשקלם של ענייני המלחמה דחק את ההצבעה הזו לרקע.</div>
+    </div>
+  </div>
+</section>
+
+<!-- FULL TABLE -->
+<section class="card">
+  <h2>טבלה מלאה (ממוין לפי נקודות)</h2>
+  <div class="lede">צבע הכרטיסיה משקף את היחס "נק' לכל 10,000 יהודים" — אדום = הרבה מאוד נק' יחסית לקהילה, ירוק = מעט.</div>
+  <table class="heat">
+    <thead>
+      <tr>
+        <th>מדינה</th>
+        <th>נק'</th>
+        <th>אוכלוסייה יהודית</th>
+        <th>נק' / 10K יהודים</th>
+        <th>הערה</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+</section>
+
+<!-- CONCLUSION -->
+<div class="conclusion">
+  <h2>סיכום בארבע נקודות</h2>
+  <ol>
+    <li><strong>ההצבעה לישראל באירוויזיון 2026 לא הונעה מהקהילה היהודית.</strong> מתאם 0.01 הוא אפס. נקודה.</li>
+    <li><strong>היא הונעה מהציבור הרחב במדינות מסוימות — מסיבות מוזיקליות, תרבותיות, או פוליטיות.</strong> אזרבייג'ן (גיאופוליטיקה), פורטוגל (טעם מוזיקלי), אלבניה (יחסים היסטוריים).</li>
+    <li><strong>הקהילה היהודית באוסטרליה, בריטניה וצרפת לא יכולה הייתה לבדה לקבוע גם אם רצתה.</strong> מתמטית — היא בין 0.3% ל-0.65% מהאוכלוסייה. הקול שלה זניח.</li>
+    <li><strong>השיר עצמו הוא המשתנה האמיתי.</strong> כשרואים 220 נק' של קהל, זה לא "התפוצה הצביעה לישראל" — זה "הקהל בעולם בחר את השיר הזה". זה הרבה יותר מחמיא.</li>
+  </ol>
+</div>
+
+<footer>
+  מקורות: הצבעות הקהל — תוצאות אירוויזיון 16.5.2026 (משתמש). אוכלוסייה יהודית — דלה-פרגולה / American Jewish Year Book / Jewish Virtual Library (2020–2024).
+</footer>
+
+</div>
+
+<script>
+const DATA = [
+  {he:"אלבניה", en:"Albania", votes:10, jews:50},
+  {he:"ארמניה", en:"Armenia", votes:7, jews:100},
+  {he:"אוסטריה", en:"Austria", votes:7, jews:10300},
+  {he:"אזרבייג'ן", en:"Azerbaijan", votes:12, jews:7200},
+  {he:"בלגיה", en:"Belgium", votes:8, jews:29000},
+  {he:"אוסטרליה", en:"Australia", votes:0, jews:117200},
+  {he:"בולגריה", en:"Bulgaria", votes:5, jews:2000},
+  {he:"קרואטיה", en:"Croatia", votes:0, jews:1700},
+  {he:"קפריסין", en:"Cyprus", votes:8, jews:300},
+  {he:"צ'כיה", en:"Czechia", votes:5, jews:3900},
+  {he:"דנמרק", en:"Denmark", votes:2, jews:6400},
+  {he:"אסטוניה", en:"Estonia", votes:1, jews:1900},
+  {he:"פינלנד", en:"Finland", votes:12, jews:1300},
+  {he:"צרפת", en:"France", votes:12, jews:438500},
+  {he:"גיאורגיה", en:"Georgia", votes:10, jews:1500},
+  {he:"גרמניה", en:"Germany", votes:12, jews:125000},
+  {he:"יוון", en:"Greece", votes:5, jews:4100},
+  {he:"איטליה", en:"Italy", votes:8, jews:27000},
+  {he:"לטביה", en:"Latvia", votes:4, jews:4500},
+  {he:"ליטא", en:"Lithuania", votes:0, jews:2400},
+  {he:"לוקסמבורג", en:"Luxembourg", votes:1, jews:700},
+  {he:"מלטה", en:"Malta", votes:7, jews:100},
+  {he:"מולדובה", en:"Moldova", votes:8, jews:1900},
+  {he:"מונטנגרו", en:"Montenegro", votes:4, jews:12},
+  {he:"נורווגיה", en:"Norway", votes:5, jews:1300},
+  {he:"פולין", en:"Poland", votes:2, jews:4500},
+  {he:"פורטוגל", en:"Portugal", votes:12, jews:3300},
+  {he:"רומניה", en:"Romania", votes:6, jews:8900},
+  {he:"סאן מרינו", en:"San Marino", votes:3, jews:5},
+  {he:"סרביה", en:"Serbia", votes:4, jews:1400},
+  {he:"שוודיה", en:"Sweden", votes:7, jews:15000},
+  {he:"שוויץ", en:"Switzerland", votes:12, jews:18500},
+  {he:"אוקראינה", en:"Ukraine", votes:5, jews:45000},
+  {he:"בריטניה", en:"UK", votes:10, jews:312000},
+  {he:"שאר העולם", en:"ROW", votes:6, jews:7200000},
+];
+
+// approximate total population (for percentage chart)
+const POP = {
+  "אוסטרליה":26600000, "צרפת":68000000, "בריטניה":67500000, "גרמניה":83000000,
+  "ארה\"ב":335000000, "קנדה":40000000, "ארגנטינה":46000000, "רוסיה":143000000,
+  "בלגיה":11700000, "איטליה":59000000, "שוויץ":8800000, "שוודיה":10500000,
+  "אוסטריה":9000000, "רומניה":19000000, "אוקראינה":36000000, "פולין":38000000,
+};
+
+Chart.defaults.color = '#a3a8c3';
+Chart.defaults.borderColor = 'rgba(255,255,255,0.08)';
+Chart.defaults.font.family = '"Segoe UI", "Heebo", Arial, sans-serif';
+
+// ===== SCATTER: votes vs Jewish pop =====
+const scatterData = DATA.filter(d => d.en !== "ROW").map(d => ({
+  x: d.jews,
+  y: d.votes,
+  label: d.he,
+}));
+
+new Chart(document.getElementById('scatter'), {
+  type: 'scatter',
+  data: {
+    datasets: [{
+      label: 'מדינות',
+      data: scatterData,
+      backgroundColor: scatterData.map(d => {
+        if (d.y === 12) return '#4ade80';
+        if (d.y === 0) return '#f87171';
+        return '#4dd2ff';
+      }),
+      borderColor: 'rgba(255,255,255,0.3)',
+      pointRadius: 8,
+      pointHoverRadius: 12,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: ctx => `${ctx.raw.label}: ${ctx.raw.y} נק' | ${ctx.raw.x.toLocaleString()} יהודים`
+        }
+      }
+    },
+    scales: {
+      x: {
+        type: 'logarithmic',
+        title: { display: true, text: 'אוכלוסייה יהודית במדינה (סקאלה לוגריתמית)', font: {size: 14} },
+        grid: { color: 'rgba(255,255,255,0.05)' }
+      },
+      y: {
+        title: { display: true, text: 'נק׳ קהל לישראל', font: {size: 14} },
+        min: -1, max: 13,
+        ticks: { stepSize: 2 },
+        grid: { color: 'rgba(255,255,255,0.05)' }
+      }
+    }
+  }
+});
+
+// ===== RATIO: % Jews in population, for big-community countries =====
+const ratioCountries = ["צרפת","בריטניה","גרמניה","אוסטרליה","בלגיה","איטליה","שוויץ","שוודיה","אוסטריה","אוקראינה"];
+const ratioData = ratioCountries.map(name => {
+  const d = DATA.find(x => x.he === name);
+  return {
+    label: name,
+    pct: (d.jews / POP[name]) * 100,
+    votes: d.votes
+  };
+}).sort((a,b) => b.pct - a.pct);
+
+new Chart(document.getElementById('ratio'), {
+  type: 'bar',
+  data: {
+    labels: ratioData.map(d => `${d.label} (${d.votes} נק')`),
+    datasets: [{
+      label: '% יהודים מתוך אוכלוסיית המדינה',
+      data: ratioData.map(d => d.pct),
+      backgroundColor: '#ffd24c',
+      borderRadius: 6,
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: ctx => `${ctx.parsed.x.toFixed(3)}% מהאוכלוסייה`
+        }
+      }
+    },
+    scales: {
+      x: {
+        title: { display: true, text: 'אחוז יהודים מתוך כלל אוכלוסיית המדינה', font: {size: 14} },
+        ticks: { callback: v => v.toFixed(2) + '%' },
+        grid: { color: 'rgba(255,255,255,0.05)' }
+      },
+      y: { grid: { color: 'rgba(255,255,255,0.05)' } }
+    }
+  }
+});
+
+// ===== BIG COMMUNITIES BAR CHART =====
+const bigComm = DATA
+  .filter(d => d.en !== "ROW")
+  .sort((a,b) => b.jews - a.jews)
+  .slice(0, 15);
+
+new Chart(document.getElementById('bigcomm'), {
+  type: 'bar',
+  data: {
+    labels: bigComm.map(d => `${d.he} (${d.jews.toLocaleString()})`),
+    datasets: [
+      {
+        label: 'נק׳ קהל לישראל',
+        data: bigComm.map(d => d.votes),
+        backgroundColor: bigComm.map(d => {
+          if (d.votes === 12) return '#4ade80';
+          if (d.votes === 0) return '#f87171';
+          if (d.votes >= 8) return '#a3e635';
+          if (d.votes >= 4) return '#facc15';
+          return '#fb923c';
+        }),
+        borderRadius: 6,
+      }
+    ]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: ctx => `${ctx.parsed.x} נק׳`
+        }
+      }
+    },
+    scales: {
+      x: {
+        title: { display: true, text: 'נק׳ קהל לישראל', font: {size: 14} },
+        max: 12,
+        ticks: { stepSize: 2 },
+        grid: { color: 'rgba(255,255,255,0.05)' }
+      },
+      y: { grid: { color: 'rgba(255,255,255,0.05)' } }
+    }
+  }
+});
+
+// ===== TABLE =====
+const sorted = [...DATA].sort((a,b) => b.votes - a.votes || (b.jews - a.jews));
+const tbody = document.getElementById('tableBody');
+const ratios = DATA.filter(d => d.en !== "ROW").map(d => d.jews > 0 ? d.votes/d.jews*10000 : 0);
+const maxR = Math.max(...ratios);
+function ratioColor(r) {
+  if (r === 0) return '#3a3f60';
+  const pct = Math.log10(r + 1) / Math.log10(maxR + 1);
+  const red = Math.round(255 * pct);
+  const grn = Math.round(180 * (1-pct));
+  return `rgba(${red},${grn},80,0.7)`;
+}
+function voteColor(v) {
+  if (v === 12) return '#4ade80';
+  if (v === 0) return '#f87171';
+  if (v >= 8) return '#a3e635';
+  if (v >= 4) return '#facc15';
+  if (v >= 1) return '#fb923c';
+  return '#3a3f60';
+}
+const notes = {
+  "אלבניה":"קהילה זעירה — יחס תרבותי חזק", "ארמניה":"קהילה זעירה",
+  "אוסטריה":"DellaPergola 2020", "אזרבייג'ן":"ברית אסטרטגית עם ישראל",
+  "בלגיה":"DellaPergola 2020", "אוסטרליה":"קהילה גדולה — אבל 0 נק'",
+  "בולגריה":"DellaPergola 2020", "קרואטיה":"DellaPergola 2020",
+  "קפריסין":"קהילה קטנה + ישראלים תושבי קבע", "צ'כיה":"DellaPergola 2020",
+  "דנמרק":"DellaPergola 2020", "אסטוניה":"DellaPergola 2020",
+  "פינלנד":"היחס הכי גבוה במדינות ה-12", "צרפת":"הקהילה הגדולה באירופה",
+  "גיאורגיה":"זיקה היסטורית עמוקה", "גרמניה":"קהילה מתאוששת — 125K",
+  "יוון":"DellaPergola 2020", "איטליה":"DellaPergola 2020",
+  "לטביה":"DellaPergola 2020", "ליטא":"קהילה מצומצמת היום",
+  "לוקסמבורג":"DellaPergola 2020", "מלטה":"קהילה זעירה",
+  "מולדובה":"DellaPergola 2020", "מונטנגרו":"כתריסר יהודים מתועדים",
+  "נורווגיה":"DellaPergola 2020", "פולין":"היה ~3.3M לפני השואה",
+  "פורטוגל":"הצבעה מוזיקלית טהורה", "רומניה":"DellaPergola 2020",
+  "סאן מרינו":"מספר בודד", "סרביה":"DellaPergola 2020",
+  "שוודיה":"DellaPergola 2020", "שוויץ":"DellaPergola 2020",
+  "אוקראינה":"אומדן טרום מלחמה", "בריטניה":"הקהילה ה-3 בגודלה באירופה",
+  "שאר העולם":"ארה\"ב, קנדה, ארגנטינה ועוד",
+};
+sorted.forEach(d => {
+  const ratio = d.en === "ROW" ? null : (d.jews > 0 ? d.votes/d.jews*10000 : 0);
+  const ratioCell = ratio === null ? '—' : ratio.toFixed(ratio < 10 ? 2 : 0);
+  const ratioStyle = ratio === null ? '' : `background:${ratioColor(ratio)}; color:white;`;
+  tbody.innerHTML += `
+    <tr>
+      <td class="country">${d.he}</td>
+      <td><span class="vote-cell" style="background:${voteColor(d.votes)}; color:#0f1228">${d.votes}</span></td>
+      <td>${d.jews.toLocaleString()}</td>
+      <td><span class="vote-cell" style="${ratioStyle}">${ratioCell}</span></td>
+      <td style="text-align:right; color:var(--muted); font-size:13px;">${notes[d.he] || ''}</td>
+    </tr>`;
+});
+</script>
+</body>
+</html>
